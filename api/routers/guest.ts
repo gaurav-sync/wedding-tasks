@@ -1,0 +1,79 @@
+import { z } from "zod";
+import { createRouter, publicQuery } from "../middleware";
+import { getDb } from "../queries/connection";
+import { ObjectId } from "mongodb";
+
+export const guestRouter = createRouter({
+  list: publicQuery.query(async () => {
+    const db = await getDb();
+    const guests = await db.collection("guests").find({}).toArray();
+    return guests.map((g) => ({
+      id: g._id.toString(),
+      name: g.name,
+      phone: g.phone ?? "",
+      group: g.group,
+      status: g.status,
+    }));
+  }),
+
+  create: publicQuery
+    .input(
+      z.object({
+        name: z.string().min(1),
+        phone: z.string().optional(),
+        group: z.enum(["Family", "Friends", "Work", "Other"]),
+        status: z.enum([
+          "Not Contacted",
+          "Invited",
+          "Called",
+          "Texted",
+          "Confirmed",
+          "Declined",
+        ]),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      const doc = {
+        ...input,
+        phone: input.phone ?? "",
+        createdAt: new Date(),
+      };
+      const result = await db.collection("guests").insertOne(doc);
+      return { id: result.insertedId.toString(), ...doc };
+    }),
+
+  update: publicQuery
+    .input(
+      z.object({
+        id: z.string(),
+        name: z.string().optional(),
+        phone: z.string().optional(),
+        group: z.enum(["Family", "Friends", "Work", "Other"]).optional(),
+        status: z.enum([
+          "Not Contacted",
+          "Invited",
+          "Called",
+          "Texted",
+          "Confirmed",
+          "Declined",
+        ]).optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      const { id, ...updates } = input;
+      await db
+        .collection("guests")
+        .updateOne({ _id: new ObjectId(id) }, { $set: updates });
+      return { success: true };
+    }),
+
+  delete: publicQuery
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      await db.collection("guests").deleteOne({ _id: new ObjectId(input.id) });
+      return { success: true };
+    }),
+});
