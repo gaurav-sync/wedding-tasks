@@ -42,10 +42,18 @@ export function GuestList() {
     group: 'Family' as GuestGroup,
     status: 'Not Contacted' as GuestStatus,
   });
+  const [addError, setAddError] = useState('');
 
   const utils = trpc.useUtils();
   const { data: guests = [] } = trpc.guest.list.useQuery();
-  const createGuest = trpc.guest.create.useMutation({ onSuccess: () => utils.guest.list.invalidate() });
+  const createGuest = trpc.guest.create.useMutation({
+    onSuccess: () => {
+      utils.guest.list.invalidate();
+      setNewGuest({ name: '', phone: '', group: 'Family', status: 'Not Contacted' });
+      setIsOpen(false);
+    },
+    onError: (err) => setAddError(err.message),
+  });
   const updateGuest = trpc.guest.update.useMutation({ onSuccess: () => utils.guest.list.invalidate() });
   const deleteGuestMut = trpc.guest.delete.useMutation({ onSuccess: () => utils.guest.list.invalidate() });
 
@@ -61,14 +69,13 @@ export function GuestList() {
 
   const addGuest = () => {
     if (!newGuest.name.trim()) return;
+    setAddError('');
     createGuest.mutate({
       name: newGuest.name.trim(),
       phone: newGuest.phone.trim() || undefined,
       group: newGuest.group,
       status: newGuest.status,
     });
-    setNewGuest({ name: '', phone: '', group: 'Family', status: 'Not Contacted' });
-    setIsOpen(false);
   };
 
   const deleteGuest = (id: string) => {
@@ -110,7 +117,7 @@ export function GuestList() {
             className="border-white/10 bg-[#050505] pl-9 text-white placeholder:text-[#52525B]"
           />
         </div>
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={(o) => { setIsOpen(o); if (!o) setAddError(''); }}>
           <DialogTrigger asChild>
             <Button className="bg-white text-black hover:bg-white/90">
               <Plus className="mr-1 h-4 w-4" />
@@ -149,8 +156,17 @@ export function GuestList() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button onClick={addGuest} className="bg-white text-black hover:bg-white/90">
-                Add Guest
+              {addError && (
+                <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+                  {addError}
+                </p>
+              )}
+              <Button
+                onClick={addGuest}
+                disabled={createGuest.isPending}
+                className="bg-white text-black hover:bg-white/90 disabled:opacity-50"
+              >
+                {createGuest.isPending ? 'Adding…' : 'Add Guest'}
               </Button>
             </div>
           </DialogContent>

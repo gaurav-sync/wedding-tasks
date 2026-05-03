@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { createRouter, protectedQuery as publicQuery } from "../middleware";
 import { getDb } from "../queries/connection";
 import { ObjectId } from "mongodb";
@@ -34,6 +35,15 @@ export const guestRouter = createRouter({
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
+      const existing = await db.collection("guests").findOne({
+        name: { $regex: new RegExp(`^${input.name.trim()}$`, "i") },
+      });
+      if (existing) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: `"${input.name.trim()}" is already in your guest list.`,
+        });
+      }
       const doc = {
         ...input,
         phone: input.phone ?? "",
