@@ -4,6 +4,23 @@ import { createRouter, protectedQuery as publicQuery } from "../middleware";
 import { getDb } from "../queries/connection";
 import { ObjectId } from "mongodb";
 
+const GUEST_STATUSES = [
+  "Not Contacted",
+  "Texted",
+  "Called",
+  "Declined",
+] as const;
+
+type GuestStatus = (typeof GUEST_STATUSES)[number];
+
+function normalizeGuestStatus(raw: unknown): GuestStatus {
+  const s = String(raw ?? "");
+  if (GUEST_STATUSES.includes(s as GuestStatus)) return s as GuestStatus;
+  if (s === "Invited") return "Not Contacted";
+  if (s === "Confirmed") return "Called";
+  return "Not Contacted";
+}
+
 export const guestRouter = createRouter({
   list: publicQuery.query(async () => {
     const db = await getDb();
@@ -13,7 +30,7 @@ export const guestRouter = createRouter({
       name: g.name,
       phone: g.phone ?? "",
       group: g.group,
-      status: g.status,
+      status: normalizeGuestStatus(g.status),
     }));
   }),
 
@@ -23,14 +40,7 @@ export const guestRouter = createRouter({
         name: z.string().min(1),
         phone: z.string().optional(),
         group: z.enum(["Family", "Friends", "Work", "Other"]),
-        status: z.enum([
-          "Not Contacted",
-          "Invited",
-          "Called",
-          "Texted",
-          "Confirmed",
-          "Declined",
-        ]),
+        status: z.enum(GUEST_STATUSES),
       })
     )
     .mutation(async ({ input }) => {
@@ -60,14 +70,7 @@ export const guestRouter = createRouter({
         name: z.string().optional(),
         phone: z.string().optional(),
         group: z.enum(["Family", "Friends", "Work", "Other"]).optional(),
-        status: z.enum([
-          "Not Contacted",
-          "Invited",
-          "Called",
-          "Texted",
-          "Confirmed",
-          "Declined",
-        ]).optional(),
+        status: z.enum(GUEST_STATUSES).optional(),
       })
     )
     .mutation(async ({ input }) => {

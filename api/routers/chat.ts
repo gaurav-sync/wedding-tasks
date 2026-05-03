@@ -9,6 +9,21 @@ function getGroqClient() {
   return new Groq({ apiKey: env.groqApiKey });
 }
 
+function normalizeGuestStatusForChat(raw: unknown): string {
+  const s = String(raw ?? "");
+  if (
+    s === "Not Contacted" ||
+    s === "Texted" ||
+    s === "Called" ||
+    s === "Declined"
+  ) {
+    return s;
+  }
+  if (s === "Invited") return "Not Contacted";
+  if (s === "Confirmed") return "Called";
+  return "Not Contacted";
+}
+
 export const chatRouter = createRouter({
   list: publicQuery.query(async () => {
     const db = await getDb();
@@ -40,7 +55,7 @@ export const chatRouter = createRouter({
       const guestSummary = guests.map((g) => ({
         name: g.name,
         group: g.group,
-        status: g.status,
+        status: normalizeGuestStatusForChat(g.status),
         phone: g.phone ?? "",
       }));
 
@@ -63,12 +78,10 @@ export const chatRouter = createRouter({
 ${JSON.stringify(guestSummary, null, 2)}
 
 Guest status breakdown:
-- Not Contacted: ${guests.filter((g) => g.status === "Not Contacted").length}
-- Invited: ${guests.filter((g) => g.status === "Invited").length}
-- Called: ${guests.filter((g) => g.status === "Called").length}
-- Texted: ${guests.filter((g) => g.status === "Texted").length}
-- Confirmed: ${guests.filter((g) => g.status === "Confirmed").length}
-- Declined: ${guests.filter((g) => g.status === "Declined").length}
+- Not Contacted: ${guests.filter((g) => normalizeGuestStatusForChat(g.status) === "Not Contacted").length}
+- Texted: ${guests.filter((g) => normalizeGuestStatusForChat(g.status) === "Texted").length}
+- Called: ${guests.filter((g) => normalizeGuestStatusForChat(g.status) === "Called").length}
+- Declined: ${guests.filter((g) => normalizeGuestStatusForChat(g.status) === "Declined").length}
 
 === TASKS (${tasks.length} total) ===
 ${JSON.stringify(taskSummary, null, 2)}
@@ -78,7 +91,7 @@ Pending: ${tasks.filter((t) => !t.isCompleted).length} | Completed: ${tasks.filt
 ${JSON.stringify(shoppingSummary, null, 2)}
 Purchased: ${shopping.filter((s) => s.isPurchased).length} | Remaining: ${shopping.filter((s) => !s.isPurchased).length}
 
-When asked about guests to call, list specifically those with status "Not Contacted" or "Invited". When asked about tasks, focus on incomplete ones. Always use the real data above, never make up numbers.`;
+When asked about guests to reach out to, prioritize those with status "Not Contacted". When asked about tasks, focus on incomplete ones. Always use the real data above, never make up numbers.`;
 
       // Fetch recent chat history for context
       const recentMessages = await db

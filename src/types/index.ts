@@ -1,12 +1,7 @@
 export type GuestGroup = 'Family' | 'Friends' | 'Work' | 'Other';
 
-export type GuestStatus =
-  | 'Not Contacted'
-  | 'Invited'
-  | 'Called'
-  | 'Texted'
-  | 'Confirmed'
-  | 'Declined';
+/** Cycle order: Not Contacted → Texted → Called → Declined */
+export type GuestStatus = 'Not Contacted' | 'Texted' | 'Called' | 'Declined';
 
 export interface Guest {
   id: string;

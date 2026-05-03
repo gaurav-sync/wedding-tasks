@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, Phone, MessageSquare, Mail, CheckCircle2, XCircle, HelpCircle, Search } from 'lucide-react';
+import { Plus, Trash2, Phone, MessageSquare, XCircle, HelpCircle, Search, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,18 +23,17 @@ import type { GuestGroup, GuestStatus } from '@/types';
 
 const STATUS_CONFIG: Record<GuestStatus, { color: string; icon: React.ReactNode }> = {
   'Not Contacted': { color: 'bg-[#52525B] text-white', icon: <HelpCircle className="h-3 w-3" /> },
-  'Invited': { color: 'bg-[#F59E0B] text-black', icon: <Mail className="h-3 w-3" /> },
-  'Called': { color: 'bg-[#3B82F6] text-white', icon: <Phone className="h-3 w-3" /> },
-  'Texted': { color: 'bg-[#8B5CF6] text-white', icon: <MessageSquare className="h-3 w-3" /> },
-  'Confirmed': { color: 'bg-[#22C55E] text-white', icon: <CheckCircle2 className="h-3 w-3" /> },
-  'Declined': { color: 'bg-[#EF4444] text-white', icon: <XCircle className="h-3 w-3" /> },
+  Texted: { color: 'bg-[#8B5CF6] text-white', icon: <MessageSquare className="h-3 w-3" /> },
+  Called: { color: 'bg-[#3B82F6] text-white', icon: <Phone className="h-3 w-3" /> },
+  Declined: { color: 'bg-[#EF4444] text-white', icon: <XCircle className="h-3 w-3" /> },
 };
 
 const GROUPS: GuestGroup[] = ['Friends', 'Family', 'Work', 'Other'];
-const STATUSES: GuestStatus[] = ['Not Contacted', 'Invited', 'Called', 'Texted', 'Confirmed', 'Declined'];
+const STATUSES: GuestStatus[] = ['Not Contacted', 'Texted', 'Called', 'Declined'];
 
 export function GuestList() {
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | GuestStatus>('all');
   const [isOpen, setIsOpen] = useState(false);
   const [newGuest, setNewGuest] = useState({
     name: '',
@@ -57,14 +56,18 @@ export function GuestList() {
   const updateGuest = trpc.guest.update.useMutation({ onSuccess: () => utils.guest.list.invalidate() });
   const deleteGuestMut = trpc.guest.delete.useMutation({ onSuccess: () => utils.guest.list.invalidate() });
 
-  const filtered = guests.filter((g) =>
-    g.name.toLowerCase().includes(search.toLowerCase()) ||
-    g.phone.includes(search) ||
-    g.group.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = guests.filter((g) => {
+    if (statusFilter !== 'all' && g.status !== statusFilter) return false;
+    return (
+      g.name.toLowerCase().includes(search.toLowerCase()) ||
+      g.phone.includes(search) ||
+      g.group.toLowerCase().includes(search.toLowerCase())
+    );
+  });
 
-  const confirmed = guests.filter((g) => g.status === 'Confirmed').length;
-  const pending = guests.filter((g) => g.status !== 'Confirmed' && g.status !== 'Declined').length;
+  const notContacted = guests.filter((g) => g.status === 'Not Contacted').length;
+  const texted = guests.filter((g) => g.status === 'Texted').length;
+  const called = guests.filter((g) => g.status === 'Called').length;
   const declined = guests.filter((g) => g.status === 'Declined').length;
 
   const addGuest = () => {
@@ -94,21 +97,24 @@ export function GuestList() {
         <h2 className="font-serif text-2xl font-semibold tracking-tight text-white">
           Guest List
         </h2>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-[#22C55E]/30 text-[#22C55E]">
-            {confirmed} Confirmed
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline" className="border-[#52525B]/50 text-[#A1A1AA]">
+            {notContacted} Not contacted
           </Badge>
-          <Badge variant="outline" className="border-[#F59E0B]/30 text-[#F59E0B]">
-            {pending} Pending
+          <Badge variant="outline" className="border-[#8B5CF6]/30 text-[#A78BFA]">
+            {texted} Texted
           </Badge>
-          <Badge variant="outline" className="border-[#EF4444]/30 text-[#EF4444]">
+          <Badge variant="outline" className="border-[#3B82F6]/30 text-[#60A5FA]">
+            {called} Called
+          </Badge>
+          <Badge variant="outline" className="border-[#EF4444]/30 text-[#F87171]">
             {declined} Declined
           </Badge>
         </div>
       </div>
 
-      <div className="mb-4 flex items-center gap-2">
-        <div className="relative flex-1">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-wrap">
+        <div className="relative min-w-0 flex-1 sm:min-w-[180px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#52525B]" />
           <Input
             placeholder="Search guests..."
@@ -117,9 +123,30 @@ export function GuestList() {
             className="border-white/10 bg-[#050505] pl-9 text-white placeholder:text-[#52525B]"
           />
         </div>
+        <div className="relative flex min-w-0 items-center gap-2 sm:w-auto sm:min-w-[200px]">
+          <Filter className="hidden h-4 w-4 shrink-0 text-[#52525B] sm:block" />
+          <Select
+            value={statusFilter}
+            onValueChange={(v) => setStatusFilter(v as 'all' | GuestStatus)}
+          >
+            <SelectTrigger className="w-full border-white/10 bg-[#050505] text-white">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent className="border-white/10 bg-[#1A1A1A] text-white">
+              <SelectItem value="all" className="focus:bg-white/10 focus:text-white">
+                All statuses
+              </SelectItem>
+              {STATUSES.map((s) => (
+                <SelectItem key={s} value={s} className="focus:bg-white/10 focus:text-white">
+                  {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <Dialog open={isOpen} onOpenChange={(o) => { setIsOpen(o); if (!o) setAddError(''); }}>
           <DialogTrigger asChild>
-            <Button className="bg-white text-black hover:bg-white/90">
+            <Button className="shrink-0 bg-white text-black hover:bg-white/90 sm:ml-auto">
               <Plus className="mr-1 h-4 w-4" />
               Add
             </Button>
@@ -228,7 +255,9 @@ export function GuestList() {
         </table>
         {filtered.length === 0 && (
           <div className="py-8 text-center text-sm text-[#52525B]">
-            {search ? 'No guests match your search.' : 'No guests yet. Add your first guest!'}
+            {guests.length === 0
+              ? 'No guests yet. Add your first guest!'
+              : 'No guests match your search or status filter.'}
           </div>
         )}
       </div>
