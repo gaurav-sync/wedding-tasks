@@ -30,7 +30,7 @@ const STATUS_CONFIG: Record<GuestStatus, { color: string; icon: React.ReactNode 
   'Declined': { color: 'bg-[#EF4444] text-white', icon: <XCircle className="h-3 w-3" /> },
 };
 
-const GROUPS: GuestGroup[] = ['Family', 'Friends', 'Work', 'Other'];
+const GROUPS: GuestGroup[] = ['Friends', 'Family', 'Work', 'Other'];
 const STATUSES: GuestStatus[] = ['Not Contacted', 'Invited', 'Called', 'Texted', 'Confirmed', 'Declined'];
 
 export function GuestList() {
