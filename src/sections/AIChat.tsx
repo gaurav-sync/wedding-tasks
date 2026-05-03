@@ -1,28 +1,42 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Sparkles, User, Bot, Lightbulb } from 'lucide-react';
+import { Send, Sparkles, User, Bot, Lightbulb, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { trpc } from '@/providers/trpc';
-import { getAIResponse, getSuggestions, generateId } from '@/lib/aiService';
+
+const SUGGESTIONS = [
+  'How many guests are confirmed?',
+  'Who still needs to be called?',
+  'What tasks are still pending?',
+  'What items are left to buy?',
+  'Which guests declined?',
+  'What should I do 1 week before the wedding?',
+];
 
 export function AIChat() {
   const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const utils = trpc.useUtils();
-  const { data: dbMessages = [] } = trpc.chat.list.useQuery();
-  const saveMessage = trpc.chat.save.useMutation({ onSuccess: () => utils.chat.list.invalidate() });
+  const { data: messages = [] } = trpc.chat.list.useQuery();
 
-  const messages = dbMessages.map((m) => ({
-    id: m.id,
-    role: m.role as 'user' | 'assistant',
-    content: m.content,
-    timestamp: m.timestamp,
-  }));
+  const sendMutation = trpc.chat.send.useMutation({
+    onSuccess: () => {
+      utils.chat.list.invalidate();
+    },
+  });
+
+  const clearMutation = trpc.chat.clear.useMutation({
+    onSuccess: () => {
+      utils.chat.list.invalidate();
+      setShowSuggestions(true);
+    },
+  });
+
+  const isTyping = sendMutation.isPending;
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -30,58 +44,12 @@ export function AIChat() {
     }
   }, [messages, isTyping]);
 
-  const persistMessage = (msg: { id: string; role: 'user' | 'assistant'; content: string; timestamp: number }) => {
-    saveMessage.mutate(msg);
-  };
-
-  const sendMessage = () => {
-    if (!input.trim()) return;
-    const userMsg = {
-      id: generateId(),
-      role: 'user' as const,
-      content: input.trim(),
-      timestamp: Date.now(),
-    };
-    persistMessage(userMsg);
+  const sendMessage = (text?: string) => {
+    const content = (text ?? input).trim();
+    if (!content || isTyping) return;
     setInput('');
     setShowSuggestions(false);
-    setIsTyping(true);
-
-    setTimeout(() => {
-      const response = getAIResponse(userMsg.content);
-      const aiMsg = {
-        id: generateId(),
-        role: 'assistant' as const,
-        content: response,
-        timestamp: Date.now(),
-      };
-      persistMessage(aiMsg);
-      setIsTyping(false);
-    }, 1500);
-  };
-
-  const sendSuggestion = (suggestion: string) => {
-    const userMsg = {
-      id: generateId(),
-      role: 'user' as const,
-      content: suggestion,
-      timestamp: Date.now(),
-    };
-    persistMessage(userMsg);
-    setInput('');
-    setShowSuggestions(false);
-    setIsTyping(true);
-    setTimeout(() => {
-      const response = getAIResponse(suggestion);
-      const aiMsg = {
-        id: generateId(),
-        role: 'assistant' as const,
-        content: response,
-        timestamp: Date.now(),
-      };
-      persistMessage(aiMsg);
-      setIsTyping(false);
-    }, 1500);
+    sendMutation.mutate({ message: content });
   };
 
   return (
@@ -90,7 +58,18 @@ export function AIChat() {
         <h2 className="font-serif text-2xl font-semibold tracking-tight text-white">
           AI Wedding Concierge
         </h2>
-        <Sparkles className="h-5 w-5 text-[#F59E0B]" />
+        <div className="flex items-center gap-2">
+          {messages.length > 0 && (
+            <button
+              onClick={() => clearMutation.mutate()}
+              className="text-[#52525B] hover:text-[#A1A1AA] transition-colors"
+              title="Clear chat"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
+          <Sparkles className="h-5 w-5 text-[#F59E0B]" />
+        </div>
       </div>
 
       <div className="mb-3 flex h-[320px] flex-col overflow-hidden rounded-xl border border-white/5 bg-[#050505]">
@@ -101,7 +80,7 @@ export function AIChat() {
                 <Bot className="h-6 w-6 text-[#A1A1AA]" />
               </div>
               <p className="text-sm text-[#A1A1AA]">
-                How can I help make your day perfect?
+                Ask me anything about your wedding — guest list, tasks, shopping and more.
               </p>
             </div>
           )}
@@ -164,10 +143,10 @@ export function AIChat() {
             exit={{ opacity: 0, height: 0 }}
             className="mb-3 flex flex-wrap gap-2"
           >
-            {getSuggestions().map((s) => (
+            {SUGGESTIONS.map((s) => (
               <button
                 key={s}
-                onClick={() => sendSuggestion(s)}
+                onClick={() => sendMessage(s)}
                 className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-[#050505] px-3 py-1.5 text-xs text-[#A1A1AA] transition-colors hover:border-white/20 hover:text-white"
               >
                 <Lightbulb className="h-3 w-3" />
@@ -180,15 +159,15 @@ export function AIChat() {
 
       <div className="flex gap-2">
         <Input
-          placeholder="Ask me anything about your wedding..."
+          placeholder="Ask about guests, tasks, shopping..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && !isTyping && sendMessage()}
+          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
           disabled={isTyping}
           className="border-white/10 bg-[#050505] text-white placeholder:text-[#52525B]"
         />
         <Button
-          onClick={sendMessage}
+          onClick={() => sendMessage()}
           disabled={isTyping || !input.trim()}
           className="bg-white text-black hover:bg-white/90 disabled:opacity-50"
         >

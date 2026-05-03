@@ -13,4 +13,5 @@ export const env = {
   appSecret: required("APP_SECRET"),
   isProduction: process.env.NODE_ENV === "production",
   databaseUrl: process.env["DATABASE"] || process.env["DATABASE_URL"] || "",
+  groqApiKey: process.env["GROQ_API_KEY"] || "",
 };
