@@ -38,7 +38,7 @@ export function GuestList() {
   const [newGuest, setNewGuest] = useState({
     name: '',
     phone: '',
-    group: 'Family' as GuestGroup,
+    group: 'Friends' as GuestGroup,
     status: 'Not Contacted' as GuestStatus,
   });
   const [addError, setAddError] = useState('');
@@ -48,7 +48,7 @@ export function GuestList() {
   const createGuest = trpc.guest.create.useMutation({
     onSuccess: () => {
       utils.guest.list.invalidate();
-      setNewGuest({ name: '', phone: '', group: 'Family', status: 'Not Contacted' });
+      setNewGuest({ name: '', phone: '', group: 'Friends', status: 'Not Contacted' });
       setIsOpen(false);
     },
     onError: (err) => setAddError(err.message),
