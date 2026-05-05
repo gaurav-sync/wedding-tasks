@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Countdown } from "@/sections/Countdown";
 import { GuestList } from "@/sections/GuestList";
 import { ShoppingList } from "@/sections/ShoppingList";
+import { ExpenseTracker } from "@/sections/ExpenseTracker";
 import { TaskTracker } from "@/sections/TaskTracker";
 import { AIChat } from "@/sections/AIChat";
 import { Login } from "@/sections/Login";
@@ -56,6 +57,7 @@ export default function App() {
           <div className="space-y-6 lg:col-span-3">
             <GuestList />
             <ShoppingList />
+            <ExpenseTracker />
           </div>
           <div className="space-y-6 lg:col-span-2">
             <Countdown targetDate={WEDDING_DATE} />

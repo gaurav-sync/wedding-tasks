@@ -34,6 +34,27 @@ export interface Task {
   isCompleted: boolean;
 }
 
+export type ExpenseCategory =
+  | 'Venue'
+  | 'Catering'
+  | 'Attire'
+  | 'Photography'
+  | 'Decor'
+  | 'Entertainment'
+  | 'Gifts'
+  | 'Travel'
+  | 'Invitations'
+  | 'Misc';
+
+export interface Expense {
+  id: string;
+  title: string;
+  amountInr: number;
+  spentOn: string;
+  category: ExpenseCategory;
+  notes: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';

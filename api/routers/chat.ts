@@ -46,10 +46,11 @@ export const chatRouter = createRouter({
       const db = await getDb();
 
       // Fetch live data to give AI context
-      const [guests, tasks, shopping] = await Promise.all([
+      const [guests, tasks, shopping, expenseRows] = await Promise.all([
         db.collection("guests").find({}).toArray(),
         db.collection("tasks").find({}).toArray(),
         db.collection("shopping").find({}).toArray(),
+        db.collection("expenses").find({}).toArray(),
       ]);
 
       const guestSummary = guests.map((g) => ({
@@ -72,6 +73,23 @@ export const chatRouter = createRouter({
         isPurchased: s.isPurchased,
       }));
 
+      const expenseSummary = expenseRows.map((ex) => ({
+        title: ex.title,
+        amountInr: ex.amountInr,
+        spentOn: ex.spentOn,
+        category: ex.category,
+        notes: ex.notes ?? "",
+      }));
+
+      const totalExpensesInr = expenseRows.reduce(
+        (s, ex) =>
+          s +
+          (typeof ex.amountInr === "number" && Number.isFinite(ex.amountInr)
+            ? ex.amountInr
+            : 0),
+        0
+      );
+
       const systemPrompt = `You are a smart wedding planning assistant for EverAfter. You have access to the couple's real wedding data below. Answer questions using this data. Be concise, helpful, and warm.
 
 === GUEST LIST (${guests.length} total) ===
@@ -91,7 +109,11 @@ Pending: ${tasks.filter((t) => !t.isCompleted).length} | Completed: ${tasks.filt
 ${JSON.stringify(shoppingSummary, null, 2)}
 Purchased: ${shopping.filter((s) => s.isPurchased).length} | Remaining: ${shopping.filter((s) => !s.isPurchased).length}
 
-When asked about guests to reach out to, prioritize those with status "Not Contacted". When asked about tasks, focus on incomplete ones. Always use the real data above, never make up numbers.`;
+=== EXPENSES (INR, ${expenseRows.length} entries) ===
+Total recorded spend: ₹${totalExpensesInr.toLocaleString("en-IN")}
+${JSON.stringify(expenseSummary, null, 2)}
+
+When asked about guests to reach out to, prioritize those with status "Not Contacted". When asked about tasks, focus on incomplete ones. For budget or spending questions, use the expense list and total in INR. Always use the real data above, never make up numbers.`;
 
       // Fetch recent chat history for context
       const recentMessages = await db

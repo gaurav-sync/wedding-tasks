@@ -7,11 +7,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { trpc } from '@/providers/trpc';
 
 const SUGGESTIONS = [
-  'How many guests are confirmed?',
+  'Summarize my guest list by status.',
   'Who still needs to be called?',
   'What tasks are still pending?',
   'What items are left to buy?',
-  'Which guests declined?',
+  'What is our total wedding spend in INR?',
   'What should I do 1 week before the wedding?',
 ];
 
