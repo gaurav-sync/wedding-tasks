@@ -25,7 +25,10 @@ function assertCanActOnTask(
 export const taskRouter = createRouter({
   list: publicQuery.query(async ({ ctx }) => {
     const db = await getDb();
-    const filter = taskListFilter(ctx.user.username);
+    const filter =
+      ctx.user.role === "owner"
+        ? {}
+        : taskListFilter(ctx.user.username);
     const tasks = await db.collection("tasks").find(filter).toArray();
     return tasks.map((t) => {
       const assignedKey = (t.assignedTo as string) ?? USER_GAURAV;
@@ -78,25 +81,37 @@ export const taskRouter = createRouter({
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       const task = await db.collection("tasks").findOne({ _id: new ObjectId(input.id) });
-      assertCanActOnTask(task, ctx.user.username);
-      if (task) {
-        await db
-          .collection("tasks")
-          .updateOne(
-            { _id: new ObjectId(input.id) },
-            { $set: { isCompleted: !task.isCompleted } }
-          );
+      if (!task) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Task not found" });
       }
+      if (ctx.user.role !== "owner") {
+        assertCanActOnTask(task, ctx.user.username);
+      }
+      await db
+        .collection("tasks")
+        .updateOne(
+          { _id: new ObjectId(input.id) },
+          { $set: { isCompleted: !task.isCompleted } }
+        );
       return { success: true };
     }),
 
   delete: publicQuery
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      if (ctx.user.role !== "owner") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only Gaurav can delete tasks.",
+        });
+      }
       const db = await getDb();
-      const task = await db.collection("tasks").findOne({ _id: new ObjectId(input.id) });
-      assertCanActOnTask(task, ctx.user.username);
-      await db.collection("tasks").deleteOne({ _id: new ObjectId(input.id) });
+      const result = await db.collection("tasks").deleteOne({
+        _id: new ObjectId(input.id),
+      });
+      if (result.deletedCount === 0) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Task not found" });
+      }
       return { success: true };
     }),
 });

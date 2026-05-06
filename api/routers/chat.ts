@@ -49,7 +49,10 @@ export const chatRouter = createRouter({
       const db = await getDb();
 
       const guestFilter = listFilterForOwner(ctx.user.username);
-      const taskFilter = taskListFilter(ctx.user.username);
+      const taskFilter =
+        ctx.user.role === "owner"
+          ? {}
+          : taskListFilter(ctx.user.username);
 
       // Fetch live data to give AI context (scoped to this user, except shared expenses)
       const [guests, tasks, shopping, expenseRows] = await Promise.all([
@@ -102,7 +105,12 @@ export const chatRouter = createRouter({
         0
       );
 
-      const systemPrompt = `You are a smart wedding planning assistant for EverAfter. You are speaking with ${USER_ACCOUNTS[ctx.user.username]?.displayName ?? ctx.user.username}. Only the data below applies to them (their guest list, their shopping list, tasks assigned to them). Expenses are shared with their partner.
+      const taskContextNote =
+        ctx.user.role === "owner"
+          ? "Tasks below include the full list (Gaurav + Vaibhav assignees)."
+          : "Tasks below are only those assigned to this user.";
+
+      const systemPrompt = `You are a smart wedding planning assistant for EverAfter. You are speaking with ${USER_ACCOUNTS[ctx.user.username]?.displayName ?? ctx.user.username}. Their guest list and shopping list are personal to this login. ${taskContextNote} Expenses are shared with their partner.
 
 === GUEST LIST (${guests.length} total, this user's list) ===
 ${JSON.stringify(guestSummary, null, 2)}

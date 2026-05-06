@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, CheckCircle2, Circle, User, CalendarDays } from 'lucide-react';
+import { Plus, Trash2, CheckCircle2, Circle, User, CalendarDays, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,8 +25,11 @@ import {
   type PartnerUsername,
 } from '@/types';
 
+type OwnerTaskFilter = 'all' | PartnerUsername;
+
 export function TaskTracker() {
   const [isOpen, setIsOpen] = useState(false);
+  const [ownerListFilter, setOwnerListFilter] = useState<OwnerTaskFilter>('all');
   const [newTask, setNewTask] = useState({
     title: '',
     assignedTo: 'vaibhavsapkal' as PartnerUsername,
@@ -46,8 +49,16 @@ export function TaskTracker() {
     onSuccess: () => utils.task.list.invalidate(),
   });
 
-  const completed = tasks.filter((t) => t.isCompleted).length;
-  const pending = tasks.filter((t) => !t.isCompleted).length;
+  const isOwner = session?.role === 'owner';
+  const canDeleteTasks = isOwner;
+
+  const visibleTasks = useMemo(() => {
+    if (!isOwner || ownerListFilter === 'all') return tasks;
+    return tasks.filter((t) => t.assignedTo === ownerListFilter);
+  }, [tasks, isOwner, ownerListFilter]);
+
+  const completed = visibleTasks.filter((t) => t.isCompleted).length;
+  const pending = visibleTasks.filter((t) => !t.isCompleted).length;
 
   const defaultAssignee = (): PartnerUsername => {
     if (!session) return 'vaibhavsapkal';
@@ -72,6 +83,7 @@ export function TaskTracker() {
   };
 
   const deleteTask = (id: string) => {
+    if (!canDeleteTasks) return;
     deleteTaskMut.mutate({ id });
   };
 
@@ -88,10 +100,12 @@ export function TaskTracker() {
             Tasks & Delegation
           </h2>
           <p className="mt-1 text-xs text-[#71717A]">
-            You only see tasks assigned to you. Assign one to your partner when you add it.
+            {isOwner
+              ? 'See everyone’s tasks below. Filter by assignee. Only you can delete tasks.'
+              : 'Tasks assigned to you. You can mark them done, but not delete them.'}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline" className="border-[#22C55E]/30 text-[#22C55E]">
             {completed} Done
           </Badge>
@@ -100,6 +114,30 @@ export function TaskTracker() {
           </Badge>
         </div>
       </div>
+
+      {isOwner && (
+        <div className="mb-3 flex items-center gap-2">
+          <Filter className="hidden h-4 w-4 shrink-0 text-[#52525B] sm:block" />
+          <Select
+            value={ownerListFilter}
+            onValueChange={(v) => setOwnerListFilter(v as OwnerTaskFilter)}
+          >
+            <SelectTrigger className="max-w-xs border-white/10 bg-[#050505] text-white">
+              <SelectValue placeholder="Filter" />
+            </SelectTrigger>
+            <SelectContent className="border-white/10 bg-[#1A1A1A] text-white">
+              <SelectItem value="all" className="focus:bg-white/10 focus:text-white">
+                All tasks
+              </SelectItem>
+              {PARTNER_USERNAMES.map((u) => (
+                <SelectItem key={u} value={u} className="focus:bg-white/10 focus:text-white">
+                  {PARTNER_DISPLAY[u]} only
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="mb-4">
         <Dialog
@@ -179,7 +217,7 @@ export function TaskTracker() {
 
       <div className="max-h-[350px] space-y-2 overflow-y-auto">
         <AnimatePresence>
-          {tasks.map((task) => {
+          {visibleTasks.map((task) => {
             const overdue = !task.isCompleted && isOverdue(task.dueDate);
             return (
               <motion.div
@@ -237,20 +275,29 @@ export function TaskTracker() {
                     )}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => deleteTask(task.id)}
-                  className="rounded-md p-1.5 text-[#52525B] opacity-0 transition-colors hover:bg-[#EF4444]/10 hover:text-[#EF4444] group-hover:opacity-100"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                {canDeleteTasks ? (
+                  <button
+                    type="button"
+                    onClick={() => deleteTask(task.id)}
+                    className="rounded-md p-1.5 text-[#52525B] opacity-0 transition-colors hover:bg-[#EF4444]/10 hover:text-[#EF4444] group-hover:opacity-100"
+                    aria-label="Delete task"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <span className="w-9 shrink-0" aria-hidden />
+                )}
               </motion.div>
             );
           })}
         </AnimatePresence>
-        {tasks.length === 0 && (
+        {visibleTasks.length === 0 && (
           <div className="py-8 text-center text-sm text-[#52525B]">
-            No tasks assigned to you yet. Your partner can assign one from their account.
+            {isOwner
+              ? ownerListFilter === 'all'
+                ? 'No tasks yet. Add one and assign it to Gaurav or Vaibhav.'
+                : `No tasks for ${PARTNER_DISPLAY[ownerListFilter as PartnerUsername] ?? 'this filter'}.`
+              : 'No tasks assigned to you yet. Your partner can assign one from their account.'}
           </div>
         )}
       </div>
