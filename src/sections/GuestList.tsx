@@ -94,9 +94,12 @@ export function GuestList() {
   return (
     <div className="rounded-2xl border border-white/10 bg-[#121212] p-6 shadow-[0px_4px_12px_rgba(255,255,255,0.05)]">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="font-serif text-2xl font-semibold tracking-tight text-white">
-          Guest List
-        </h2>
+        <div>
+          <h2 className="font-serif text-2xl font-semibold tracking-tight text-white">
+            Guest List
+          </h2>
+          <p className="mt-0.5 text-xs text-[#71717A]">Your personal list — not shared with your partner&apos;s account.</p>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline" className="border-[#52525B]/50 text-[#A1A1AA]">
             {notContacted} Not contacted

@@ -3,6 +3,9 @@ import { createRouter, protectedQuery as publicQuery } from "../middleware";
 import { getDb } from "../queries/connection";
 import Groq from "groq-sdk";
 import { env } from "../lib/env";
+import { listFilterForOwner, taskListFilter } from "../lib/scoping";
+import { USER_ACCOUNTS, USER_GAURAV } from "../lib/users";
+import type { TaskAssignee } from "../lib/users";
 
 function getGroqClient() {
   if (!env.groqApiKey) throw new Error("GROQ_API_KEY is not set");
@@ -42,14 +45,17 @@ export const chatRouter = createRouter({
 
   send: publicQuery
     .input(z.object({ message: z.string().min(1) }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
 
-      // Fetch live data to give AI context
+      const guestFilter = listFilterForOwner(ctx.user.username);
+      const taskFilter = taskListFilter(ctx.user.username);
+
+      // Fetch live data to give AI context (scoped to this user, except shared expenses)
       const [guests, tasks, shopping, expenseRows] = await Promise.all([
-        db.collection("guests").find({}).toArray(),
-        db.collection("tasks").find({}).toArray(),
-        db.collection("shopping").find({}).toArray(),
+        db.collection("guests").find(guestFilter).toArray(),
+        db.collection("tasks").find(taskFilter).toArray(),
+        db.collection("shopping").find(guestFilter).toArray(),
         db.collection("expenses").find({}).toArray(),
       ]);
 
@@ -60,12 +66,18 @@ export const chatRouter = createRouter({
         phone: g.phone ?? "",
       }));
 
-      const taskSummary = tasks.map((t) => ({
-        title: t.title,
-        assignee: t.assignee,
-        dueDate: t.dueDate ?? "",
-        isCompleted: t.isCompleted,
-      }));
+      const taskSummary = tasks.map((t) => {
+        const assignedKey = (t.assignedTo as string) ?? USER_GAURAV;
+        return {
+          title: t.title,
+          assignee:
+            (t.assignee as string) ||
+            USER_ACCOUNTS[assignedKey as TaskAssignee]?.displayName,
+          assignedTo: assignedKey,
+          dueDate: t.dueDate ?? "",
+          isCompleted: t.isCompleted,
+        };
+      });
 
       const shoppingSummary = shopping.map((s) => ({
         itemName: s.itemName,
@@ -90,9 +102,9 @@ export const chatRouter = createRouter({
         0
       );
 
-      const systemPrompt = `You are a smart wedding planning assistant for EverAfter. You have access to the couple's real wedding data below. Answer questions using this data. Be concise, helpful, and warm.
+      const systemPrompt = `You are a smart wedding planning assistant for EverAfter. You are speaking with ${USER_ACCOUNTS[ctx.user.username]?.displayName ?? ctx.user.username}. Only the data below applies to them (their guest list, their shopping list, tasks assigned to them). Expenses are shared with their partner.
 
-=== GUEST LIST (${guests.length} total) ===
+=== GUEST LIST (${guests.length} total, this user's list) ===
 ${JSON.stringify(guestSummary, null, 2)}
 
 Guest status breakdown:

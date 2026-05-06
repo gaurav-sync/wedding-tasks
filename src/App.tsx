@@ -7,6 +7,7 @@ import { TaskTracker } from "@/sections/TaskTracker";
 import { AIChat } from "@/sections/AIChat";
 import { Login } from "@/sections/Login";
 import { Heart, LogOut } from "lucide-react";
+import { trpc } from "@/providers/trpc";
 
 const WEDDING_DATE = new Date("2026-05-10T00:00:00");
 
@@ -14,6 +15,8 @@ export default function App() {
   const [token, setToken] = useState<string | null>(
     () => localStorage.getItem("auth_token"),
   );
+
+  const utils = trpc.useUtils();
 
   const handleLogin = (newToken: string) => {
     localStorage.setItem("auth_token", newToken);
@@ -23,7 +26,12 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem("auth_token");
     setToken(null);
+    void utils.auth.session.invalidate();
   };
+
+  const { data: session } = trpc.auth.session.useQuery(undefined, {
+    enabled: !!token,
+  });
 
   if (!token) {
     return <Login onLogin={handleLogin} />;
@@ -40,7 +48,15 @@ export default function App() {
             </h1>
           </div>
           <div className="flex items-center gap-4">
-            <p className="text-sm text-[#A1A1AA]">May 10, 2026</p>
+            <p className="text-sm text-[#A1A1AA]">
+              May 10, 2026
+              {session && (
+                <span className="hidden sm:inline">
+                  {" "}
+                  · <span className="text-white/90">{session.displayName}</span>
+                </span>
+              )}
+            </p>
             <button
               onClick={handleLogout}
               className="flex items-center gap-1.5 text-xs text-[#71717A] hover:text-white transition-colors"

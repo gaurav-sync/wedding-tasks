@@ -3,6 +3,11 @@ import { TRPCError } from "@trpc/server";
 import { createRouter, protectedQuery as publicQuery } from "../middleware";
 import { getDb } from "../queries/connection";
 import { ObjectId } from "mongodb";
+import {
+  assertOwnerDoc,
+  escapeRegex,
+  listFilterForOwner,
+} from "../lib/scoping";
 
 const GUEST_STATUSES = [
   "Not Contacted",
@@ -22,9 +27,10 @@ function normalizeGuestStatus(raw: unknown): GuestStatus {
 }
 
 export const guestRouter = createRouter({
-  list: publicQuery.query(async () => {
+  list: publicQuery.query(async ({ ctx }) => {
     const db = await getDb();
-    const guests = await db.collection("guests").find({}).toArray();
+    const filter = listFilterForOwner(ctx.user.username);
+    const guests = await db.collection("guests").find(filter).toArray();
     return guests.map((g) => ({
       id: g._id.toString(),
       name: g.name,
@@ -43,10 +49,14 @@ export const guestRouter = createRouter({
         status: z.enum(GUEST_STATUSES),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const db = await getDb();
+      const ownerFilter = listFilterForOwner(ctx.user.username);
       const existing = await db.collection("guests").findOne({
-        name: { $regex: new RegExp(`^${input.name.trim()}$`, "i") },
+        $and: [
+          { name: { $regex: new RegExp(`^${escapeRegex(input.name.trim())}$`, "i") } },
+          ownerFilter,
+        ],
       });
       if (existing) {
         throw new TRPCError({
@@ -57,6 +67,7 @@ export const guestRouter = createRouter({
       const doc = {
         ...input,
         phone: input.phone ?? "",
+        ownerId: ctx.user.username,
         createdAt: new Date(),
       };
       const result = await db.collection("guests").insertOne(doc);
@@ -73,9 +84,13 @@ export const guestRouter = createRouter({
         status: z.enum(GUEST_STATUSES).optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       const { id, ...updates } = input;
+      const found = await db
+        .collection("guests")
+        .findOne({ _id: new ObjectId(id) });
+      assertOwnerDoc(found, ctx.user.username);
       await db
         .collection("guests")
         .updateOne({ _id: new ObjectId(id) }, { $set: updates });
@@ -84,8 +99,12 @@ export const guestRouter = createRouter({
 
   delete: publicQuery
     .input(z.object({ id: z.string() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const db = await getDb();
+      const found = await db
+        .collection("guests")
+        .findOne({ _id: new ObjectId(input.id) });
+      assertOwnerDoc(found, ctx.user.username);
       await db.collection("guests").deleteOne({ _id: new ObjectId(input.id) });
       return { success: true };
     }),

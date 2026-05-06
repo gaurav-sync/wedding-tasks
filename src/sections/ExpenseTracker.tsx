@@ -72,6 +72,8 @@ export function ExpenseTracker() {
   const [formError, setFormError] = useState('');
 
   const utils = trpc.useUtils();
+  const { data: session } = trpc.auth.session.useQuery();
+  const canManageExpenses = session?.canManageExpensesFully ?? false;
   const { data: expenses = [] } = trpc.expense.list.useQuery();
   const createMut = trpc.expense.create.useMutation({
     onSuccess: () => {
@@ -164,9 +166,16 @@ export function ExpenseTracker() {
   return (
     <div className="rounded-2xl border border-white/10 bg-[#121212] p-6 shadow-[0px_4px_12px_rgba(255,255,255,0.05)]">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
         <h2 className="font-serif text-2xl font-semibold tracking-tight text-white">
           Expense tracker
         </h2>
+          {!canManageExpenses && (
+            <p className="mt-1 text-xs text-[#71717A]">
+              Shared with Gaurav. You can add entries; only Gaurav can edit or delete.
+            </p>
+          )}
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-sm text-emerald-400">
             <IndianRupee className="h-3.5 w-3.5" />
@@ -191,7 +200,9 @@ export function ExpenseTracker() {
               <th className="px-4 py-3">Date</th>
               <th className="px-4 py-3">Category</th>
               <th className="hidden px-4 py-3 md:table-cell">Notes</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+              <th className="px-4 py-3 text-right">
+                {canManageExpenses ? 'Actions' : ''}
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
@@ -220,24 +231,28 @@ export function ExpenseTracker() {
                     {e.notes || '—'}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100 sm:opacity-100">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(e.id)}
-                        className="rounded-md p-1.5 text-[#52525B] hover:bg-white/10 hover:text-white"
-                        aria-label="Edit expense"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => deleteMut.mutate({ id: e.id })}
-                        className="rounded-md p-1.5 text-[#52525B] hover:bg-[#EF4444]/10 hover:text-[#EF4444]"
-                        aria-label="Delete expense"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
+                    {canManageExpenses ? (
+                      <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100 sm:opacity-100">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(e.id)}
+                          className="rounded-md p-1.5 text-[#52525B] hover:bg-white/10 hover:text-white"
+                          aria-label="Edit expense"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteMut.mutate({ id: e.id })}
+                          className="rounded-md p-1.5 text-[#52525B] hover:bg-[#EF4444]/10 hover:text-[#EF4444]"
+                          aria-label="Delete expense"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-[#52525B]">—</span>
+                    )}
                   </td>
                 </motion.tr>
               ))}

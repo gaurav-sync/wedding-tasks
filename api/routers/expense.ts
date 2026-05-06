@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { createRouter, protectedQuery as publicQuery } from "../middleware";
 import { getDb } from "../queries/connection";
 import { ObjectId } from "mongodb";
@@ -71,8 +72,14 @@ export const expenseRouter = createRouter({
         notes: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const db = await getDb();
+      if (ctx.user.role !== "owner") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only Gaurav can edit expenses.",
+        });
+      }
       const { id, ...raw } = input;
       const updates: Record<string, unknown> = {};
       if (raw.title !== undefined) updates.title = raw.title;
@@ -89,8 +96,14 @@ export const expenseRouter = createRouter({
 
   delete: publicQuery
     .input(z.object({ id: z.string() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const db = await getDb();
+      if (ctx.user.role !== "owner") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only Gaurav can delete expenses.",
+        });
+      }
       await db.collection("expenses").deleteOne({ _id: new ObjectId(input.id) });
       return { success: true };
     }),

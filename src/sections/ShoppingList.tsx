@@ -50,10 +50,13 @@ export function ShoppingList() {
 
   return (
     <div className="rounded-2xl border border-white/10 bg-[#121212] p-6 shadow-[0px_4px_12px_rgba(255,255,255,0.05)]">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="font-serif text-2xl font-semibold tracking-tight text-white">
-          Shopping List
-        </h2>
+      <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="font-serif text-2xl font-semibold tracking-tight text-white">
+            Shopping List
+          </h2>
+          <p className="text-xs text-[#71717A]">Your list only — your partner has a separate shopping list.</p>
+        </div>
         <div className="flex items-center gap-2 text-sm text-[#A1A1AA]">
           <ShoppingBag className="h-4 w-4" />
           <span>

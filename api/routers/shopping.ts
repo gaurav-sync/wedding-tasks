@@ -2,11 +2,15 @@ import { z } from "zod";
 import { createRouter, protectedQuery as publicQuery } from "../middleware";
 import { getDb } from "../queries/connection";
 import { ObjectId } from "mongodb";
+import { assertOwnerDoc, listFilterForOwner } from "../lib/scoping";
 
 export const shoppingRouter = createRouter({
-  list: publicQuery.query(async () => {
+  list: publicQuery.query(async ({ ctx }) => {
     const db = await getDb();
-    const items = await db.collection("shopping").find({}).toArray();
+    const items = await db
+      .collection("shopping")
+      .find(listFilterForOwner(ctx.user.username))
+      .toArray();
     return items.map((i) => ({
       id: i._id.toString(),
       itemName: i.itemName,
@@ -23,10 +27,11 @@ export const shoppingRouter = createRouter({
         isPurchased: z.boolean().default(false),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       const result = await db.collection("shopping").insertOne({
         ...input,
+        ownerId: ctx.user.username,
         createdAt: new Date(),
       });
       return { id: result.insertedId.toString(), ...input };
@@ -34,9 +39,10 @@ export const shoppingRouter = createRouter({
 
   toggle: publicQuery
     .input(z.object({ id: z.string() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       const item = await db.collection("shopping").findOne({ _id: new ObjectId(input.id) });
+      assertOwnerDoc(item, ctx.user.username);
       if (item) {
         await db
           .collection("shopping")
@@ -50,8 +56,10 @@ export const shoppingRouter = createRouter({
 
   delete: publicQuery
     .input(z.object({ id: z.string() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const db = await getDb();
+      const item = await db.collection("shopping").findOne({ _id: new ObjectId(input.id) });
+      assertOwnerDoc(item, ctx.user.username);
       await db.collection("shopping").deleteOne({ _id: new ObjectId(input.id) });
       return { success: true };
     }),

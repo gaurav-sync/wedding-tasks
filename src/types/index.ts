@@ -30,9 +30,19 @@ export interface Task {
   id: string;
   title: string;
   assignee: string;
+  /** Login id of who should complete this task */
+  assignedTo: string;
   dueDate: string;
   isCompleted: boolean;
 }
+
+/** Shared with API task assignee field */
+export const PARTNER_USERNAMES = ['gauravsapkal', 'vaibhavsapkal'] as const;
+export type PartnerUsername = (typeof PARTNER_USERNAMES)[number];
+export const PARTNER_DISPLAY: Record<PartnerUsername, string> = {
+  gauravsapkal: 'Gaurav',
+  vaibhavsapkal: 'Vaibhav',
+};
 
 export type ExpenseCategory =
   | 'Venue'

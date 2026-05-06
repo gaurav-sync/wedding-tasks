@@ -10,34 +10,60 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { trpc } from '@/providers/trpc';
+import {
+  PARTNER_DISPLAY,
+  PARTNER_USERNAMES,
+  type PartnerUsername,
+} from '@/types';
 
 export function TaskTracker() {
   const [isOpen, setIsOpen] = useState(false);
   const [newTask, setNewTask] = useState({
     title: '',
-    assignee: '',
+    assignedTo: 'vaibhavsapkal' as PartnerUsername,
     dueDate: '',
   });
 
   const utils = trpc.useUtils();
+  const { data: session } = trpc.auth.session.useQuery();
   const { data: tasks = [] } = trpc.task.list.useQuery();
-  const createTask = trpc.task.create.useMutation({ onSuccess: () => utils.task.list.invalidate() });
-  const toggleTask = trpc.task.toggle.useMutation({ onSuccess: () => utils.task.list.invalidate() });
-  const deleteTaskMut = trpc.task.delete.useMutation({ onSuccess: () => utils.task.list.invalidate() });
+  const createTask = trpc.task.create.useMutation({
+    onSuccess: () => utils.task.list.invalidate(),
+  });
+  const toggleTask = trpc.task.toggle.useMutation({
+    onSuccess: () => utils.task.list.invalidate(),
+  });
+  const deleteTaskMut = trpc.task.delete.useMutation({
+    onSuccess: () => utils.task.list.invalidate(),
+  });
 
   const completed = tasks.filter((t) => t.isCompleted).length;
   const pending = tasks.filter((t) => !t.isCompleted).length;
+
+  const defaultAssignee = (): PartnerUsername => {
+    if (!session) return 'vaibhavsapkal';
+    return session.username === 'gauravsapkal'
+      ? 'vaibhavsapkal'
+      : 'gauravsapkal';
+  };
 
   const addTask = () => {
     if (!newTask.title.trim()) return;
     createTask.mutate({
       title: newTask.title.trim(),
-      assignee: newTask.assignee.trim() || 'Me',
+      assignedTo: newTask.assignedTo,
       dueDate: newTask.dueDate || undefined,
     });
-    setNewTask({ title: '', assignee: '', dueDate: '' });
+    setNewTask({ title: '', assignedTo: defaultAssignee(), dueDate: '' });
     setIsOpen(false);
   };
 
@@ -57,9 +83,14 @@ export function TaskTracker() {
   return (
     <div className="rounded-2xl border border-white/10 bg-[#121212] p-6 shadow-[0px_4px_12px_rgba(255,255,255,0.05)]">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="font-serif text-2xl font-semibold tracking-tight text-white">
-          Tasks & Delegation
-        </h2>
+        <div>
+          <h2 className="font-serif text-2xl font-semibold tracking-tight text-white">
+            Tasks & Delegation
+          </h2>
+          <p className="mt-1 text-xs text-[#71717A]">
+            You only see tasks assigned to you. Assign one to your partner when you add it.
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="border-[#22C55E]/30 text-[#22C55E]">
             {completed} Done
@@ -71,7 +102,23 @@ export function TaskTracker() {
       </div>
 
       <div className="mb-4">
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog
+          open={isOpen}
+          onOpenChange={(open) => {
+            setIsOpen(open);
+            if (open) {
+              setNewTask({
+                title: '',
+                assignedTo: session
+                  ? session.username === 'gauravsapkal'
+                    ? 'vaibhavsapkal'
+                    : 'gauravsapkal'
+                  : 'vaibhavsapkal',
+                dueDate: '',
+              });
+            }
+          }}
+        >
           <DialogTrigger asChild>
             <Button variant="outline" className="w-full border-white/10 text-white hover:bg-white/5 hover:text-white">
               <Plus className="mr-2 h-4 w-4" />
@@ -89,18 +136,37 @@ export function TaskTracker() {
                 onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
                 className="border-white/10 bg-[#050505] text-white placeholder:text-[#52525B]"
               />
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Assign to (e.g., Mom, Best Man)"
-                  value={newTask.assignee}
-                  onChange={(e) => setNewTask({ ...newTask, assignee: e.target.value })}
-                  className="border-white/10 bg-[#050505] text-white placeholder:text-[#52525B]"
-                />
+              <div className="space-y-1.5">
+                <label className="text-xs text-[#A1A1AA]">Assign to</label>
+                <Select
+                  value={newTask.assignedTo}
+                  onValueChange={(v) =>
+                    setNewTask({ ...newTask, assignedTo: v as PartnerUsername })
+                  }
+                >
+                  <SelectTrigger className="border-white/10 bg-[#050505] text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="border-white/10 bg-[#1A1A1A] text-white">
+                    {PARTNER_USERNAMES.map((u) => (
+                      <SelectItem
+                        key={u}
+                        value={u}
+                        className="focus:bg-white/10 focus:text-white"
+                      >
+                        {PARTNER_DISPLAY[u]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-[#A1A1AA]">Due date (optional)</label>
                 <Input
                   type="date"
                   value={newTask.dueDate}
                   onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
-                  className="border-white/10 bg-[#050505] text-white"
+                  className="border-white/10 bg-[#050505] text-white [color-scheme:dark]"
                 />
               </div>
               <Button onClick={addTask} className="bg-white text-black hover:bg-white/90">
@@ -131,6 +197,7 @@ export function TaskTracker() {
                 }`}
               >
                 <button
+                  type="button"
                   onClick={() => toggle(task.id)}
                   className="mt-0.5 text-[#52525B] transition-colors hover:text-white"
                 >
@@ -148,15 +215,13 @@ export function TaskTracker() {
                   >
                     {task.title}
                   </p>
-                  <div className="mt-1 flex items-center gap-3">
-                    {task.assignee && (
-                      <div className="flex items-center gap-1.5 text-xs text-[#A1A1AA]">
-                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-[10px] font-semibold text-white">
-                          <User className="h-3 w-3" />
-                        </div>
-                        {task.assignee}
+                  <div className="mt-1 flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-1.5 text-xs text-[#A1A1AA]">
+                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-[10px] font-semibold text-white">
+                        <User className="h-3 w-3" />
                       </div>
-                    )}
+                      {task.assignee}
+                    </div>
                     {task.dueDate && (
                       <div
                         className={`flex items-center gap-1 text-xs ${
@@ -173,6 +238,7 @@ export function TaskTracker() {
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => deleteTask(task.id)}
                   className="rounded-md p-1.5 text-[#52525B] opacity-0 transition-colors hover:bg-[#EF4444]/10 hover:text-[#EF4444] group-hover:opacity-100"
                 >
@@ -184,7 +250,7 @@ export function TaskTracker() {
         </AnimatePresence>
         {tasks.length === 0 && (
           <div className="py-8 text-center text-sm text-[#52525B]">
-            No tasks yet. Delegate work to stay organized!
+            No tasks assigned to you yet. Your partner can assign one from their account.
           </div>
         )}
       </div>

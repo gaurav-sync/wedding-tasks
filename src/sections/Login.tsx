@@ -11,8 +11,10 @@ export function Login({ onLogin }: LoginProps) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
+  const utils = trpc.useUtils();
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
+      void utils.auth.session.invalidate();
       onLogin(data.token);
     },
     onError: (err) => {
@@ -54,7 +56,7 @@ export function Login({ onLogin }: LoginProps) {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full bg-white/[0.05] border border-white/10 rounded-lg pl-9 pr-3 py-2.5 text-white text-sm placeholder:text-[#52525B] focus:outline-none focus:border-white/30 transition-colors"
-                  placeholder="Enter username"
+                  placeholder="gauravsapkal or vaibhavsapkal"
                   required
                 />
               </div>
