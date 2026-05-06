@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, Phone, MessageSquare, XCircle, HelpCircle, Search, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -92,47 +91,49 @@ export function GuestList() {
   };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#121212] p-6 shadow-[0px_4px_12px_rgba(255,255,255,0.05)]">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="font-serif text-2xl font-semibold tracking-tight text-white">
+    <div className="overflow-visible rounded-2xl border border-white/10 bg-[#121212] p-6 pb-7 shadow-[0px_4px_12px_rgba(255,255,255,0.05)]">
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 shrink pt-0.5">
+          <h2 className="font-serif text-2xl font-semibold leading-snug tracking-tight text-white">
             Guest List
           </h2>
-          <p className="mt-0.5 text-xs text-[#71717A]">Your personal list — not shared with your partner&apos;s account.</p>
+          <p className="mt-0.5 text-xs leading-relaxed text-[#71717A]">
+            Your personal list — not shared with your partner&apos;s account.
+          </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline" className="border-[#52525B]/50 text-[#A1A1AA]">
+        <div className="flex max-w-full flex-nowrap items-center gap-2 overflow-x-auto py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] lg:max-w-[55%] lg:flex-wrap lg:justify-end lg:overflow-visible [&::-webkit-scrollbar]:hidden">
+          <Badge variant="outline" className="shrink-0 border-[#52525B]/50 text-[#A1A1AA]">
             {notContacted} Not contacted
           </Badge>
-          <Badge variant="outline" className="border-[#8B5CF6]/30 text-[#A78BFA]">
+          <Badge variant="outline" className="shrink-0 border-[#8B5CF6]/30 text-[#A78BFA]">
             {texted} Texted
           </Badge>
-          <Badge variant="outline" className="border-[#3B82F6]/30 text-[#60A5FA]">
+          <Badge variant="outline" className="shrink-0 border-[#3B82F6]/30 text-[#60A5FA]">
             {called} Called
           </Badge>
-          <Badge variant="outline" className="border-[#EF4444]/30 text-[#F87171]">
+          <Badge variant="outline" className="shrink-0 border-[#EF4444]/30 text-[#F87171]">
             {declined} Declined
           </Badge>
         </div>
       </div>
 
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-wrap">
-        <div className="relative min-w-0 flex-1 sm:min-w-[180px]">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#52525B]" />
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#52525B]" />
           <Input
             placeholder="Search guests..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="border-white/10 bg-[#050505] pl-9 text-white placeholder:text-[#52525B]"
+            className="h-10 border-white/10 bg-[#050505] pl-9 text-white placeholder:text-[#52525B]"
           />
         </div>
-        <div className="relative flex min-w-0 items-center gap-2 sm:w-auto sm:min-w-[200px]">
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:max-w-[220px] sm:flex-initial">
           <Filter className="hidden h-4 w-4 shrink-0 text-[#52525B] sm:block" />
           <Select
             value={statusFilter}
             onValueChange={(v) => setStatusFilter(v as 'all' | GuestStatus)}
           >
-            <SelectTrigger className="w-full border-white/10 bg-[#050505] text-white">
+            <SelectTrigger className="h-10 w-full border-white/10 bg-[#050505] text-white">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent className="border-white/10 bg-[#1A1A1A] text-white">
@@ -149,7 +150,7 @@ export function GuestList() {
         </div>
         <Dialog open={isOpen} onOpenChange={(o) => { setIsOpen(o); if (!o) setAddError(''); }}>
           <DialogTrigger asChild>
-            <Button className="shrink-0 bg-white text-black hover:bg-white/90 sm:ml-auto">
+            <Button className="h-10 w-full shrink-0 bg-white text-black hover:bg-white/90 sm:ml-auto sm:w-auto">
               <Plus className="mr-1 h-4 w-4" />
               Add
             </Button>
@@ -203,57 +204,55 @@ export function GuestList() {
         </Dialog>
       </div>
 
-      <div className="max-h-[400px] overflow-y-auto rounded-xl border border-white/5">
-        <table className="w-full text-left text-sm">
-          <thead className="sticky top-0 bg-[#1A1A1A] text-xs uppercase tracking-wider text-[#A1A1AA]">
+      <div className="max-h-[400px] overflow-x-auto overflow-y-auto rounded-xl border border-white/5">
+        <table className="w-full min-w-[600px] border-separate border-spacing-0 text-left text-sm">
+          <thead className="sticky top-0 z-10 bg-[#1A1A1A] text-xs uppercase tracking-wider text-[#A1A1AA] shadow-[0_1px_0_0_rgba(255,255,255,0.06)]">
             <tr>
-              <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Phone</th>
-              <th className="px-4 py-3">Group</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3 text-right">Action</th>
+              <th className="w-[22%] px-4 py-3 text-left font-medium">Name</th>
+              <th className="w-[18%] px-4 py-3 text-left font-medium">Phone</th>
+              <th className="w-[15%] px-4 py-3 text-left font-medium">Group</th>
+              <th className="w-[30%] px-4 py-3 text-left font-medium">Status</th>
+              <th className="w-[15%] px-4 py-3 text-right font-medium">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
-            <AnimatePresence>
-              {filtered.map((guest) => {
-                const config = STATUS_CONFIG[guest.status as GuestStatus];
-                return (
-                  <motion.tr
-                    key={guest.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="group hover:bg-white/[0.02]"
-                  >
-                    <td className="px-4 py-3 font-medium text-white">{guest.name}</td>
-                    <td className="px-4 py-3 text-[#A1A1AA]">{guest.phone}</td>
-                    <td className="px-4 py-3">
-                      <span className="rounded-md bg-white/5 px-2 py-1 text-xs text-[#A1A1AA]">
-                        {guest.group}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={() => cycleStatus(guest.id, guest.status as GuestStatus)}
-                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all duration-300 ${config.color}`}
-                      >
-                        {config.icon}
-                        {guest.status}
-                      </button>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => deleteGuest(guest.id)}
-                        className="rounded-md p-1.5 text-[#52525B] opacity-0 transition-colors hover:bg-[#EF4444]/10 hover:text-[#EF4444] group-hover:opacity-100"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </motion.tr>
-                );
-              })}
-            </AnimatePresence>
+            {filtered.map((guest) => {
+              const config = STATUS_CONFIG[guest.status as GuestStatus];
+              return (
+                <tr key={guest.id} className="group hover:bg-white/[0.02]">
+                  <td className="px-4 py-3 align-middle font-medium text-white">
+                    {guest.name}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 align-middle text-[#A1A1AA]">
+                    {guest.phone || <span className="text-[#3f3f46]">—</span>}
+                  </td>
+                  <td className="px-4 py-3 align-middle">
+                    <span className="inline-block rounded-md bg-white/5 px-2 py-1 text-xs text-[#A1A1AA]">
+                      {guest.group}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 align-middle">
+                    <button
+                      type="button"
+                      onClick={() => cycleStatus(guest.id, guest.status as GuestStatus)}
+                      className={`inline-flex max-w-full items-center gap-1.5 rounded-full px-3 py-1 text-left text-xs font-medium transition-all duration-300 ${config.color}`}
+                    >
+                      <span className="shrink-0">{config.icon}</span>
+                      <span className="truncate">{guest.status}</span>
+                    </button>
+                  </td>
+                  <td className="px-4 py-3 text-right align-middle">
+                    <button
+                      type="button"
+                      onClick={() => deleteGuest(guest.id)}
+                      className="inline-flex rounded-md p-1.5 text-[#52525B] opacity-0 transition-colors hover:bg-[#EF4444]/10 hover:text-[#EF4444] group-hover:opacity-100"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
         {filtered.length === 0 && (

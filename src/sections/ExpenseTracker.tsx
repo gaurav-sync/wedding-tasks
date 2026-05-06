@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, Pencil, IndianRupee } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -164,19 +163,19 @@ export function ExpenseTracker() {
   const pending = createMut.isPending || updateMut.isPending;
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#121212] p-6 shadow-[0px_4px_12px_rgba(255,255,255,0.05)]">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-        <h2 className="font-serif text-2xl font-semibold tracking-tight text-white">
-          Expense tracker
-        </h2>
+    <div className="overflow-visible rounded-2xl border border-white/10 bg-[#121212] p-6 pb-7 shadow-[0px_4px_12px_rgba(255,255,255,0.05)]">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 shrink pt-0.5">
+          <h2 className="font-serif text-2xl font-semibold leading-snug tracking-tight text-white">
+            Expense tracker
+          </h2>
           {!canManageExpenses && (
-            <p className="mt-1 text-xs text-[#71717A]">
+            <p className="mt-1.5 text-xs leading-relaxed text-[#71717A]">
               Shared with Gaurav. You can add entries; only Gaurav can edit or delete.
             </p>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
           <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-sm text-emerald-400">
             <IndianRupee className="h-3.5 w-3.5" />
             {formatInr(totalInr)} total
@@ -191,72 +190,68 @@ export function ExpenseTracker() {
         </div>
       </div>
 
-      <div className="max-h-[420px] overflow-y-auto rounded-xl border border-white/5">
-        <table className="w-full text-left text-sm">
-          <thead className="sticky top-0 bg-[#1A1A1A] text-xs uppercase tracking-wider text-[#A1A1AA]">
+      <div className="max-h-[420px] overflow-x-auto overflow-y-auto rounded-xl border border-white/5">
+        <table className="w-full min-w-[720px] border-separate border-spacing-0 text-left text-sm">
+          <thead className="sticky top-0 z-10 bg-[#1A1A1A] text-xs uppercase tracking-wider text-[#A1A1AA] shadow-[0_1px_0_0_rgba(255,255,255,0.06)]">
             <tr>
-              <th className="px-4 py-3">Title</th>
-              <th className="px-4 py-3">Amount</th>
-              <th className="px-4 py-3">Date</th>
-              <th className="px-4 py-3">Category</th>
-              <th className="hidden px-4 py-3 md:table-cell">Notes</th>
-              <th className="px-4 py-3 text-right">
-                {canManageExpenses ? 'Actions' : ''}
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Title</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Amount</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Date</th>
+              <th className="whitespace-nowrap px-4 py-3 text-left font-medium">Category</th>
+              <th className="hidden px-4 py-3 text-left font-medium md:table-cell">Notes</th>
+              <th className="whitespace-nowrap px-4 py-3 text-right font-medium">
+                {canManageExpenses ? 'Actions' : '\u00a0'}
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
-            <AnimatePresence>
-              {expenses.map((e) => (
-                <motion.tr
-                  key={e.id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, x: -12 }}
-                  className="group hover:bg-white/[0.02]"
-                >
-                  <td className="px-4 py-3 font-medium text-white">{e.title}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-[#F5F5F5]">
-                    {formatInr(e.amountInr)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-[#A1A1AA]">
-                    {e.spentOn}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="rounded-md bg-white/5 px-2 py-1 text-xs text-[#A1A1AA]">
-                      {e.category}
+            {expenses.map((e) => (
+              <tr key={e.id} className="group hover:bg-white/[0.02]">
+                <td className="max-w-[220px] break-words px-4 py-3 align-top font-medium text-white">
+                  {e.title}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 align-top text-[#F5F5F5]">
+                  {formatInr(e.amountInr)}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 align-top text-[#A1A1AA]">
+                  {e.spentOn}
+                </td>
+                <td className="px-4 py-3 align-top">
+                  <span className="inline-block rounded-md bg-white/5 px-2 py-1 text-xs text-[#A1A1AA]">
+                    {e.category}
+                  </span>
+                </td>
+                <td className="hidden max-w-[200px] break-words px-4 py-3 align-top text-[#71717A] md:table-cell">
+                  {e.notes || '—'}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-right align-top">
+                  {canManageExpenses ? (
+                    <div className="inline-flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100 sm:opacity-100">
+                      <button
+                        type="button"
+                        onClick={() => openEdit(e.id)}
+                        className="rounded-md p-1.5 text-[#52525B] hover:bg-white/10 hover:text-white"
+                        aria-label="Edit expense"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteMut.mutate({ id: e.id })}
+                        className="rounded-md p-1.5 text-[#52525B] hover:bg-[#EF4444]/10 hover:text-[#EF4444]"
+                        aria-label="Delete expense"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-[#52525B]" aria-hidden>
+                      —
                     </span>
-                  </td>
-                  <td className="hidden max-w-[200px] truncate px-4 py-3 text-[#71717A] md:table-cell">
-                    {e.notes || '—'}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {canManageExpenses ? (
-                      <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100 sm:opacity-100">
-                        <button
-                          type="button"
-                          onClick={() => openEdit(e.id)}
-                          className="rounded-md p-1.5 text-[#52525B] hover:bg-white/10 hover:text-white"
-                          aria-label="Edit expense"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deleteMut.mutate({ id: e.id })}
-                          className="rounded-md p-1.5 text-[#52525B] hover:bg-[#EF4444]/10 hover:text-[#EF4444]"
-                          aria-label="Delete expense"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="text-[#52525B]">—</span>
-                    )}
-                  </td>
-                </motion.tr>
-              ))}
-            </AnimatePresence>
+                  )}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
         {expenses.length === 0 && (
